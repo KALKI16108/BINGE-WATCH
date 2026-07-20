@@ -31,6 +31,12 @@ export default function VideoPlayer({
   const [activeCatalogTab, setActiveCatalogTab] = useState<"retro" | "solo-leveling" | "attack-on-titan">("retro");
   const [selectedSeasonNum, setSelectedSeasonNum] = useState<number>(1);
   const [episodeSearchQuery, setEpisodeSearchQuery] = useState<string>("");
+  const [languageMode, setLanguageMode] = useState<"sub" | "dub">("sub");
+  const [activeEpisode, setActiveEpisode] = useState<{
+    seriesTitle: string;
+    seasonTitle: string;
+    episode: Episode;
+  } | null>(null);
 
   // UI States
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -259,16 +265,22 @@ export default function VideoPlayer({
   };
 
   // Switch to an episode of Solo Leveling or Attack on Titan
-  const selectEpisode = (seriesTitle: string, seasonTitle: string, episode: Episode) => {
+  const selectEpisode = (seriesTitle: string, seasonTitle: string, episode: Episode, forcedLanguage?: "sub" | "dub") => {
     setLocalVideoFile(null);
     setLocalVideoUrl("");
 
-    const displayTitle = `${seriesTitle} - ${seasonTitle} Ep ${episode.episodeNumber}: ${episode.title}`;
+    const currentLang = forcedLanguage || languageMode;
+    const targetUrl = (currentLang === "dub" && episode.dubUrl) ? episode.dubUrl : (episode.subUrl || episode.previewUrl);
+    
+    // Save as active episode for quick language toggles
+    setActiveEpisode({ seriesTitle, seasonTitle, episode });
+
+    const displayTitle = `${seriesTitle} - ${seasonTitle} Ep ${episode.episodeNumber}: ${episode.title} (${currentLang === "dub" ? "Dubbed" : "Subbed"})`;
     
     // Set video source (use trailer / preview URL as the sync base)
     const video = videoRef.current;
     if (video) {
-      video.src = episode.previewUrl;
+      video.src = targetUrl;
       video.load();
       video.currentTime = 0;
       setCurrentTime(0);
@@ -279,8 +291,8 @@ export default function VideoPlayer({
     lastProcessedSeq.current = nextSeq;
 
     onUpdateVideoState({
-      videoId: `ep-${seriesTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}-${seasonTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}-e${episode.episodeNumber}`,
-      videoUrl: episode.previewUrl,
+      videoId: `ep-${seriesTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}-${seasonTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}-e${episode.episodeNumber}-${currentLang}`,
+      videoUrl: targetUrl,
       videoTitle: displayTitle,
       isPlaying: false,
       currentTime: 0,
@@ -290,7 +302,17 @@ export default function VideoPlayer({
       senderId: peerId
     });
 
-    showTemporarySyncMsg(`Loaded: Ep ${episode.episodeNumber} - ${episode.title} 🎬`);
+    showTemporarySyncMsg(`Loaded: Ep ${episode.episodeNumber} - ${episode.title} [${currentLang.toUpperCase()}] 🎬`);
+  };
+
+  // Switch the stream format for the room between SUB and DUB
+  const handleLanguageChange = (lang: "sub" | "dub") => {
+    setLanguageMode(lang);
+    if (activeEpisode) {
+      selectEpisode(activeEpisode.seriesTitle, activeEpisode.seasonTitle, activeEpisode.episode, lang);
+    } else {
+      showTemporarySyncMsg(`Audio preference switched to ${lang === "sub" ? "Japanese (Sub)" : "English (Dub)"} 🗣️`);
+    }
   };
 
   // Load a custom video link (.mp4)
@@ -504,6 +526,36 @@ export default function VideoPlayer({
             </div>
 
             <div className="flex items-center gap-4 relative">
+              {/* Language Toggle */}
+              <div className="bg-white/5 border border-white/10 rounded-lg p-0.5 flex items-center shrink-0">
+                <button
+                  id="btn-player-sub"
+                  type="button"
+                  onClick={() => handleLanguageChange("sub")}
+                  className={`text-[9px] px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                    languageMode === "sub"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Switch to Japanese Subbed"
+                >
+                  SUB
+                </button>
+                <button
+                  id="btn-player-dub"
+                  type="button"
+                  onClick={() => handleLanguageChange("dub")}
+                  className={`text-[9px] px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                    languageMode === "dub"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Switch to English Dubbed"
+                >
+                  DUB
+                </button>
+              </div>
+
               {/* Playback speed trigger */}
               <button
                 id="player-speed-btn"
@@ -620,7 +672,7 @@ export default function VideoPlayer({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-            Solo Leveling (All Ep)
+            Solo Leveling (S1 & S2)
           </button>
 
           <button
@@ -812,15 +864,15 @@ export default function VideoPlayer({
                         </button>
 
                         <a
-                          href={`https://www.google.com/search?q=intitle%3A%22index+of%22+%22mp4%22+%22${encodeURIComponent(selectedSeries.title)}%22+%22Episode+${ep.episodeNumber}%22`}
+                          href={`https://www.google.com/search?q=intitle%3A%22index+of%22+%22mp4%22+%22${encodeURIComponent(selectedSeries.title)}%22+%22Episode+${ep.episodeNumber}%22+${languageMode === "dub" ? "dub" : "sub"}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           referrerPolicy="no-referrer"
                           className="text-[9px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all shrink-0"
-                          title="Search for a direct-stream link on Google to load inside the box"
+                          title={`Search for a direct-stream ${languageMode === "dub" ? "English Dubbed" : "Japanese Subtitled"} link on Google to load inside the box`}
                         >
                           <Globe className="w-2.5 h-2.5 text-indigo-400" />
-                          Find Free Link
+                          Find {languageMode === "dub" ? "Dub" : "Sub"} Link
                         </a>
                       </div>
                     </div>
