@@ -52,6 +52,26 @@ export default function VideoPlayer({
   const lastProcessedSeq = useRef<number>(-1);
   const isLocalAction = useRef<boolean>(false);
   const ignoreSyncTimeout = useRef<NodeJS.Timeout | null>(null);
+  const ignoreEventsRef = useRef<boolean>(false);
+
+  // Synchronize video source when videoState.videoUrl changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const currentSrc = localVideoUrl || videoState.videoUrl;
+    if (currentSrc && currentSrc !== "local" && video.getAttribute("src") !== currentSrc) {
+      console.log("Loading new video URL dynamically:", currentSrc);
+      ignoreEventsRef.current = true;
+      video.src = currentSrc;
+      video.load();
+      setCurrentTime(0);
+      setIsPlaying(false);
+      setTimeout(() => {
+        ignoreEventsRef.current = false;
+      }, 500);
+    }
+  }, [videoState.videoUrl, localVideoUrl]);
 
   // Track state from server and apply to HTML5 Video Element
   useEffect(() => {
@@ -72,11 +92,9 @@ export default function VideoPlayer({
       lastProcessedSeq.current = serverSeq;
 
       // Temporarily set a flag so our own event listeners don't report this as a "user action"
+      ignoreEventsRef.current = true;
       isLocalAction.current = false;
 
-      // Handle custom/curated URLs or local file updates if URL changed
-      // Note: For local files, they must have the file selected locally, we can't sync the actual file bytes over HTTP signaling, but we sync state.
-      
       // Update playback speed
       if (video.playbackRate !== videoState.playbackSpeed) {
         video.playbackRate = videoState.playbackSpeed;
@@ -104,6 +122,10 @@ export default function VideoPlayer({
       if (videoState.lastAction === "seek" && videoState.senderId !== "system") {
         showTemporarySyncMsg(`Synced to ${formatTime(videoState.currentTime)} ✨`);
       }
+
+      setTimeout(() => {
+        ignoreEventsRef.current = false;
+      }, 500);
     }
   }, [videoState, peerId]);
 
@@ -143,6 +165,7 @@ export default function VideoPlayer({
 
   // Video Event Handlers
   const handlePlay = () => {
+    if (ignoreEventsRef.current) return;
     if (isLocalAction.current) return;
     setIsPlaying(true);
     const video = videoRef.current;
@@ -152,6 +175,7 @@ export default function VideoPlayer({
   };
 
   const handlePause = () => {
+    if (ignoreEventsRef.current) return;
     if (isLocalAction.current) return;
     setIsPlaying(false);
     const video = videoRef.current;

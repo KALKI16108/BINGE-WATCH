@@ -40,7 +40,6 @@ export default function App() {
   // UI States
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
-  const [pendingVideoUpdate, setPendingVideoUpdate] = useState<Partial<VideoState> | null>(null);
 
   // Initialize client peerId
   useEffect(() => {
@@ -77,15 +76,9 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             peerId,
-            clientTime: Date.now(),
-            videoStateUpdate: pendingVideoUpdate || undefined
+            clientTime: Date.now()
           })
         });
-
-        // Clear pending local video actions once sent
-        if (pendingVideoUpdate) {
-          setPendingVideoUpdate(null);
-        }
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -131,7 +124,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isJoined, roomId, peerId, pendingVideoUpdate]);
+  }, [isJoined, roomId, peerId]);
 
   // Create a new theatre room session
   const handleCreateRoom = async () => {
@@ -210,10 +203,37 @@ export default function App() {
   };
 
   // Callback to update master video state from VideoPlayer
-  const handleUpdateVideoState = (updates: Partial<VideoState>) => {
-    setPendingVideoUpdate(updates);
+  const handleUpdateVideoState = async (updates: Partial<VideoState>) => {
     // Apply locally first for smooth feedback!
     setVideoState((prev) => ({ ...prev, ...updates }));
+
+    if (!roomId || !peerId) return;
+
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          peerId,
+          clientTime: Date.now(),
+          videoStateUpdate: updates
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.videoState) {
+          setVideoState(data.videoState);
+        }
+        if (data.peers) {
+          const peersObj = data.peers || {};
+          const peerList: Peer[] = Object.keys(peersObj).map((id) => peersObj[id]);
+          setPartners(peerList);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to push immediate video state sync:", e);
+    }
   };
 
   // Chat/AI messaging handlers
