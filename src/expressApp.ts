@@ -166,6 +166,37 @@ const app = express();
 
 app.use(express.json());
 
+// Support both prefixed /api/rooms and raw /rooms routes (crucial for clean Vercel serverless routing)
+app.use((req, res, next) => {
+  let cleanUrl = req.url || "/";
+  
+  // Vercel serverless functions can sometimes prefix the handler's filename to req.url
+  if (cleanUrl.startsWith("/api/index.ts")) {
+    cleanUrl = cleanUrl.substring("/api/index.ts".length);
+  } else if (cleanUrl.startsWith("/api/index.js")) {
+    cleanUrl = cleanUrl.substring("/api/index.js".length);
+  } else if (cleanUrl.startsWith("/api/index")) {
+    cleanUrl = cleanUrl.substring("/api/index".length);
+  }
+  
+  // Normalize any multiple/double slashes
+  cleanUrl = cleanUrl.replace(/\/+/g, "/");
+  if (!cleanUrl) {
+    cleanUrl = "/";
+  }
+
+  // Ensure /api prefix is present so Express router matches correctly
+  if (!cleanUrl.startsWith("/api") && !cleanUrl.startsWith("/static")) {
+    cleanUrl = "/api" + cleanUrl;
+  }
+  
+  // Normalize double slashes again just in case
+  cleanUrl = cleanUrl.replace(/\/+/g, "/");
+
+  req.url = cleanUrl;
+  next();
+});
+
 // API: Get Curated Anime List
 app.get("/api/anime", (req, res) => {
   res.json(defaultAnimeList);
@@ -278,9 +309,47 @@ app.post("/api/rooms/:id/sync", (req, res) => {
   const roomId = req.params.id.toUpperCase();
   const { peerId, videoStateUpdate } = req.body;
 
-  const room = rooms[roomId];
+  let room = rooms[roomId];
   if (!room) {
-    return res.status(404).json({ error: "Room not found" });
+    // Re-create the room on the fly on this stateless serverless instance
+    room = {
+      id: roomId,
+      peers: {},
+      videoState: {
+        videoId: "astro-boy",
+        videoUrl: "https://archive.org/download/astro-boy-1963-series/Astro_Boy_1963_-_Episode_01_-_The_Birth_of_Astro_Boy.mp4",
+        videoTitle: "Astro Boy (1963) - Episode 1",
+        isPlaying: false,
+        currentTime: 0,
+        playbackSpeed: 1.0,
+        actionSeq: 0,
+        lastAction: "load",
+        senderId: "system",
+        updatedAt: Date.now()
+      },
+      chatMessages: [
+        {
+          id: "welcome",
+          senderId: "system",
+          senderName: "Sakura-chan 🌸",
+          text: "Room synchronized. 💕",
+          timestamp: Date.now(),
+          isAi: true
+        }
+      ],
+      reactions: [],
+      signals: []
+    };
+    rooms[roomId] = room;
+  }
+
+  // Ensure this peer is registered in the re-created room
+  if (!room.peers[peerId]) {
+    room.peers[peerId] = {
+      id: peerId,
+      name: "Partner", // Placeholder name until they sync or re-join
+      lastActive: Date.now()
+    };
   }
 
   // Update peer liveness
