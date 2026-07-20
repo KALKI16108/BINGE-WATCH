@@ -52,7 +52,7 @@ export default function VideoCall({
       } catch (err: any) {
         console.warn("Could not access camera/mic:", err);
         setMediaError(
-          "Webcam/microphone access not granted or unavailable. Displaying cozy couples avatar mode! 🌸"
+          "Camera & Mic access is currently blocked or unavailable! 🔒 Inside the AI Studio preview iframe, browsers block camera/microphone access for safety. To start video/voice calling, please click the 'Open in new tab' button at the top-right of the preview, or copy and load the dev URL directly! Displaying cute partner placeholder cards for now. 🌸"
         );
         setLocalStream(null);
       }
