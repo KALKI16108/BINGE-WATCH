@@ -53,23 +53,32 @@ export default function VideoPlayer({
   const isLocalAction = useRef<boolean>(false);
   const ignoreSyncTimeout = useRef<NodeJS.Timeout | null>(null);
   const ignoreEventsRef = useRef<boolean>(false);
+  const pendingSeekRef = useRef<number | null>(null);
+  const lastSrcRef = useRef<string>("");
 
-  // Synchronize video source when videoState.videoUrl changes
+  // Track last loaded source to reset time / play state on change
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
     const currentSrc = localVideoUrl || videoState.videoUrl;
-    if (currentSrc && currentSrc !== "local" && video.getAttribute("src") !== currentSrc) {
-      console.log("Loading new video URL dynamically:", currentSrc);
+    if (currentSrc && currentSrc !== lastSrcRef.current) {
+      console.log("Source changed to:", currentSrc);
+      lastSrcRef.current = currentSrc;
+      
+      // Ignore events temporarily while loading the new source
       ignoreEventsRef.current = true;
-      video.src = currentSrc;
-      video.load();
       setCurrentTime(0);
+      setDuration(0);
       setIsPlaying(false);
-      setTimeout(() => {
+      pendingSeekRef.current = null;
+      
+      const video = videoRef.current;
+      if (video) {
+        video.load();
+      }
+
+      const timer = setTimeout(() => {
         ignoreEventsRef.current = false;
-      }, 500);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [videoState.videoUrl, localVideoUrl]);
 
@@ -101,11 +110,16 @@ export default function VideoPlayer({
         setPlaybackSpeed(videoState.playbackSpeed);
       }
 
-      // Handle seeking
+      // Handle seeking safely (wait for metadata if needed)
       const diff = Math.abs(video.currentTime - videoState.currentTime);
       if (diff > 1.5) {
-        video.currentTime = videoState.currentTime;
-        setCurrentTime(videoState.currentTime);
+        if (video.readyState >= 1) {
+          video.currentTime = videoState.currentTime;
+          setCurrentTime(videoState.currentTime);
+          pendingSeekRef.current = null;
+        } else {
+          pendingSeekRef.current = videoState.currentTime;
+        }
       }
 
       // Handle play/pause
@@ -195,6 +209,18 @@ export default function VideoPlayer({
     const video = videoRef.current;
     if (video) {
       setDuration(video.duration);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setDuration(video.duration);
+    if (pendingSeekRef.current !== null) {
+      console.log("Applying pending seek on loaded metadata:", pendingSeekRef.current);
+      video.currentTime = pendingSeekRef.current;
+      setCurrentTime(pendingSeekRef.current);
+      pendingSeekRef.current = null;
     }
   };
 
@@ -465,6 +491,7 @@ export default function VideoPlayer({
           onPause={handlePause}
           onTimeUpdate={handleTimeUpdate}
           onDurationChange={handleDurationChange}
+          onLoadedMetadata={handleLoadedMetadata}
           preload="auto"
           playsInline
         />
