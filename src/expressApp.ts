@@ -1,7 +1,7 @@
 import express from "express";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-import { Peer, VideoState, ChatMessage, SignalMessage, ReactionMessage } from "./types";
+import { Peer, VideoState, ChatMessage, SignalMessage, ReactionMessage } from "./types.js";
 
 dotenv.config();
 

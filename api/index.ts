@@ -1,3 +1,3 @@
-import app from "../src/expressApp";
+import app from "../src/expressApp.js";
 
 export default app;
