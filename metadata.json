@@ -1,0 +1,9 @@
+{
+  "name": "Couples Anime Theatre",
+  "description": "Watch anime together on a synchronized player with real-time video/audio call, romantic reaction bursts, text chat, and a Gemini-powered recommendation companion.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
