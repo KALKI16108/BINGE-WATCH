@@ -143,8 +143,17 @@ export default function App() {
 
     try {
       const res = await fetch("/api/rooms", { method: "POST" });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        setErrorMsg(`Failed to start room (Status ${res.status}). ${text.substring(0, 100)}`);
+        return;
+      }
       const data = await res.json();
       const code = data.roomId;
+      if (!code) {
+        setErrorMsg("Failed to start room. Server did not return a Room ID.");
+        return;
+      }
       
       setRoomId(code);
       setUserName(nameInput);
@@ -155,8 +164,8 @@ export default function App() {
 
       // Join immediately
       await handleJoinRoom(code, nameInput);
-    } catch (e) {
-      setErrorMsg("Failed to start room. Check server backend.");
+    } catch (e: any) {
+      setErrorMsg(`Failed to start room. Connection error: ${e?.message || e}`);
     }
   };
 
@@ -183,7 +192,8 @@ export default function App() {
       });
 
       if (!res.ok) {
-        setErrorMsg("Could not join room. Is the room code correct?");
+        const text = await res.text().catch(() => "");
+        setErrorMsg(`Could not join room (Status ${res.status}). ${text.substring(0, 100)}`);
         return;
       }
 
@@ -194,8 +204,8 @@ export default function App() {
       
       if (data.videoState) setVideoState(data.videoState);
       if (data.chatMessages) setChatMessages(data.chatMessages);
-    } catch (e) {
-      setErrorMsg("Connection failed. Please refresh and try again.");
+    } catch (e: any) {
+      setErrorMsg(`Connection failed: ${e?.message || e}`);
     }
   };
 

@@ -168,6 +168,7 @@ app.use(express.json());
 
 // Support both prefixed /api/rooms and raw /rooms routes (crucial for clean Vercel serverless routing)
 app.use((req, res, next) => {
+  const originalUrl = req.url;
   let cleanUrl = req.url || "/";
   
   // Vercel serverless functions can sometimes prefix the handler's filename to req.url
@@ -194,16 +195,17 @@ app.use((req, res, next) => {
   cleanUrl = cleanUrl.replace(/\/+/g, "/");
 
   req.url = cleanUrl;
+  console.log(`[ROUTE DEBUG] Method: ${req.method} | Original: ${originalUrl} | Final: ${req.url}`);
   next();
 });
 
 // API: Get Curated Anime List
-app.get("/api/anime", (req, res) => {
+app.get(["/api/anime", "/anime"], (req, res) => {
   res.json(defaultAnimeList);
 });
 
 // API: Create a room
-app.post("/api/rooms", (req, res) => {
+app.post(["/api/rooms", "/rooms"], (req, res) => {
   const id = generateRoomId();
   const newRoom: Room = {
     id,
@@ -238,7 +240,7 @@ app.post("/api/rooms", (req, res) => {
 });
 
 // API: Join a room
-app.post("/api/rooms/:id/join", (req, res) => {
+app.post(["/api/rooms/:id/join", "/rooms/:id/join"], (req, res) => {
   const roomId = req.params.id.toUpperCase();
   const { peerId, name } = req.body;
 
@@ -305,7 +307,7 @@ app.post("/api/rooms/:id/join", (req, res) => {
 });
 
 // API: Heartbeat & State Synchronizer
-app.post("/api/rooms/:id/sync", (req, res) => {
+app.post(["/api/rooms/:id/sync", "/rooms/:id/sync"], (req, res) => {
   const roomId = req.params.id.toUpperCase();
   const { peerId, videoStateUpdate } = req.body;
 
@@ -401,7 +403,7 @@ app.post("/api/rooms/:id/sync", (req, res) => {
 });
 
 // API: Post WebRTC signaling messages
-app.post("/api/rooms/:id/signal", (req, res) => {
+app.post(["/api/rooms/:id/signal", "/rooms/:id/signal"], (req, res) => {
   const roomId = req.params.id.toUpperCase();
   const { senderId, receiverId, type, payload } = req.body;
 
@@ -424,7 +426,7 @@ app.post("/api/rooms/:id/signal", (req, res) => {
 });
 
 // API: Post chat messages (and trigger AI responses)
-app.post("/api/rooms/:id/chat", async (req, res) => {
+app.post(["/api/rooms/:id/chat", "/rooms/:id/chat"], async (req, res) => {
   const roomId = req.params.id.toUpperCase();
   const { senderId, senderName, text } = req.body;
 
@@ -520,7 +522,7 @@ Respond back as Sakura-chan directly:`;
 });
 
 // API: Post a reaction (emoji burst)
-app.post("/api/rooms/:id/reaction", (req, res) => {
+app.post(["/api/rooms/:id/reaction", "/rooms/:id/reaction"], (req, res) => {
   const roomId = req.params.id.toUpperCase();
   const { senderId, emoji } = req.body;
 
@@ -541,7 +543,7 @@ app.post("/api/rooms/:id/reaction", (req, res) => {
 });
 
 // API: Ask AI for suggestions directly (button trigger)
-app.post("/api/rooms/:id/ai-recommend", async (req, res) => {
+app.post(["/api/rooms/:id/ai-recommend", "/rooms/:id/ai-recommend"], async (req, res) => {
   const roomId = req.params.id.toUpperCase();
   const { vibe } = req.body;
 
