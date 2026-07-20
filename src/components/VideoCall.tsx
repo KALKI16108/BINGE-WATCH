@@ -41,6 +41,9 @@ export default function VideoCall({
     async function setupMedia() {
       try {
         setMediaError("");
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("MediaDevices or getUserMedia is not supported by this browser or context. Secure context (HTTPS) is required for camera and microphone access.");
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 320, height: 240, frameRate: 15 },
           audio: true
@@ -52,7 +55,7 @@ export default function VideoCall({
       } catch (err: any) {
         console.warn("Could not access camera/mic:", err);
         setMediaError(
-          "Camera & Mic access is currently blocked or unavailable! 🔒 Inside the AI Studio preview iframe, browsers block camera/microphone access for safety. To start video/voice calling, please click the 'Open in new tab' button at the top-right of the preview, or copy and load the dev URL directly! Displaying cute partner placeholder cards for now. 🌸"
+          "Camera & Mic access is currently blocked, unsupported, or unavailable! 🔒 Note: Secure connection (HTTPS) or local development (localhost) is required. If you are inside the AI Studio preview, please click 'Open in new tab' at the top-right of the preview, or copy and load the dev URL directly in a full browser tab! Displaying cute placeholders for now. 🌸"
         );
         setLocalStream(null);
       }

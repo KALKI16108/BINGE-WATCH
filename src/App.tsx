@@ -51,11 +51,11 @@ export default function App() {
       setRoomId(roomParam.toUpperCase());
     }
 
-    // Load or generate client peer ID
-    let pid = localStorage.getItem("anicouple_peer_id");
+    // Load or generate client peer ID (use sessionStorage to prevent tab collisions on the same browser)
+    let pid = sessionStorage.getItem("anicouple_peer_id");
     if (!pid) {
-      pid = `peer-${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem("anicouple_peer_id", pid);
+      pid = `peer-${Math.random().toString(36).substring(2, 11)}`;
+      sessionStorage.setItem("anicouple_peer_id", pid);
     }
     setPeerId(pid);
 
