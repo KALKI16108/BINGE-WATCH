@@ -32,25 +32,25 @@ export const rooms: { [roomId: string]: Room } = {};
 // Initial curated anime selection (open source / public domain retro classics)
 export const defaultAnimeList = [
   {
-    id: "astro-boy",
-    title: "Astro Boy (1963) - Episode 1",
-    url: "https://archive.org/download/astro-boy-1963-series/Astro_Boy_1963_-_Episode_01_-_The_Birth_of_Astro_Boy.mp4",
-    description: "The legendary first-ever episode of Tezuka's absolute classic! Watch the birth of Astro Boy and his initial adventures in beautiful retro style.",
-    duration: "24:35"
+    id: "sintel",
+    title: "Sintel (Fantasy Anime Short)",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    description: "A visually stunning fantasy adventure about a lone warrior named Sintel who rescues and forms a powerful bond with a baby dragon.",
+    duration: "08:48"
   },
   {
-    id: "kimba-lion",
-    title: "Kimba the White Lion (1965) - Episode 1",
-    url: "https://archive.org/download/KimbaTheWhiteLion/KimbaTheWhiteLion_Episode01_GoeneWild_512kb.mp4",
-    description: "The groundbreaking 1965 color masterpiece! Follow Kimba's early savanna journey as he dreams of peaceful coexistence.",
-    duration: "25:12"
+    id: "big-buck-bunny",
+    title: "Big Buck Bunny (Classic Animation)",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    description: "A comedy masterclass! Follow a giant, adorable white rabbit who decides to stand up against three bullying forest squirrels.",
+    duration: "09:56"
   },
   {
-    id: "sita-blues",
-    title: "Sita Sings the Blues (Feature Film)",
-    url: "https://archive.org/download/Sita_Sings_the_Blues/Sita_Sings_the_Blues_1080p.mp4",
-    description: "An award-winning, vibrant indie animated feature film that combines ancient Sanskrit epic, shadow puppets, and gorgeous modern jazz.",
-    duration: "1:21:54"
+    id: "tears-of-steel",
+    title: "Tears of Steel (Sci-Fi Cyberpunk)",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+    description: "An incredible sci-fi animation featuring giant robots, high-tech holographic overlays, and visual effects in a dystopian futuristic setting.",
+    duration: "12:14"
   },
   {
     id: "lofi-chill",
@@ -211,9 +211,9 @@ app.post(["/api/rooms", "/rooms"], (req, res) => {
     id,
     peers: {},
     videoState: {
-      videoId: "astro-boy",
-      videoUrl: "https://archive.org/download/astro-boy-1963-series/Astro_Boy_1963_-_Episode_01_-_The_Birth_of_Astro_Boy.mp4",
-      videoTitle: "Astro Boy (1963) - Episode 1",
+      videoId: "sintel",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      videoTitle: "Sintel (Fantasy Anime Short)",
       isPlaying: false,
       currentTime: 0,
       playbackSpeed: 1.0,
@@ -318,9 +318,9 @@ app.post(["/api/rooms/:id/sync", "/rooms/:id/sync"], (req, res) => {
       id: roomId,
       peers: {},
       videoState: {
-        videoId: "astro-boy",
-        videoUrl: "https://archive.org/download/astro-boy-1963-series/Astro_Boy_1963_-_Episode_01_-_The_Birth_of_Astro_Boy.mp4",
-        videoTitle: "Astro Boy (1963) - Episode 1",
+        videoId: "sintel",
+        videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        videoTitle: "Sintel (Fantasy Anime Short)",
         isPlaying: false,
         currentTime: 0,
         playbackSpeed: 1.0,

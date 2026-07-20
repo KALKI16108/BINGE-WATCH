@@ -19,9 +19,9 @@ export default function App() {
   // Sync state received from server
   const [partners, setPartners] = useState<Peer[]>([]);
   const [videoState, setVideoState] = useState<VideoState>({
-    videoId: "astro-boy",
-    videoUrl: "https://archive.org/download/astro-boy-1963-series/Astro_Boy_1963_-_Episode_01_-_The_Birth_of_Astro_Boy.mp4",
-    videoTitle: "Astro Boy (1963) - Episode 1",
+    videoId: "sintel",
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    videoTitle: "Sintel (Fantasy Anime Short)",
     isPlaying: false,
     currentTime: 0,
     playbackSpeed: 1.0,
