@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, Maximize, Settings, FileVideo, Globe, Loader } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, Maximize, Settings, FileVideo, Globe, Loader, Search, Sparkles, Film } from "lucide-react";
 import { VideoState, AnimeTitle } from "../types";
+import { animeSeriesData, Episode } from "../data/animeEpisodes";
 
 interface VideoPlayerProps {
   roomId: string;
@@ -25,6 +26,11 @@ export default function VideoPlayer({
   const [customInputUrl, setCustomInputUrl] = useState<string>("");
   const [showCustomUrlInput, setShowCustomUrlInput] = useState<boolean>(false);
   const [showFreeStreamingGuide, setShowFreeStreamingGuide] = useState<boolean>(false);
+
+  // Modern Series Episode Finder states
+  const [activeCatalogTab, setActiveCatalogTab] = useState<"retro" | "solo-leveling" | "attack-on-titan">("retro");
+  const [selectedSeasonNum, setSelectedSeasonNum] = useState<number>(1);
+  const [episodeSearchQuery, setEpisodeSearchQuery] = useState<string>("");
 
   // UI States
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -252,6 +258,41 @@ export default function VideoPlayer({
     showTemporarySyncMsg(`Loaded: ${anime.title} 🌸`);
   };
 
+  // Switch to an episode of Solo Leveling or Attack on Titan
+  const selectEpisode = (seriesTitle: string, seasonTitle: string, episode: Episode) => {
+    setLocalVideoFile(null);
+    setLocalVideoUrl("");
+
+    const displayTitle = `${seriesTitle} - ${seasonTitle} Ep ${episode.episodeNumber}: ${episode.title}`;
+    
+    // Set video source (use trailer / preview URL as the sync base)
+    const video = videoRef.current;
+    if (video) {
+      video.src = episode.previewUrl;
+      video.load();
+      video.currentTime = 0;
+      setCurrentTime(0);
+      setIsPlaying(false);
+    }
+
+    const nextSeq = videoState.actionSeq + 1;
+    lastProcessedSeq.current = nextSeq;
+
+    onUpdateVideoState({
+      videoId: `ep-${seriesTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}-${seasonTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}-e${episode.episodeNumber}`,
+      videoUrl: episode.previewUrl,
+      videoTitle: displayTitle,
+      isPlaying: false,
+      currentTime: 0,
+      playbackSpeed: 1.0,
+      actionSeq: nextSeq,
+      lastAction: "load",
+      senderId: peerId
+    });
+
+    showTemporarySyncMsg(`Loaded: Ep ${episode.episodeNumber} - ${episode.title} 🎬`);
+  };
+
   // Load a custom video link (.mp4)
   const handleLoadCustomUrl = (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,6 +376,22 @@ export default function VideoPlayer({
 
   // Detect current active video source title
   const currentTitle = videoState.videoTitle || "No anime loaded";
+
+  // Match selected series and filter episodes
+  const selectedSeries = activeCatalogTab === "solo-leveling" 
+    ? animeSeriesData[0] 
+    : activeCatalogTab === "attack-on-titan" 
+      ? animeSeriesData[1] 
+      : null;
+
+  const activeSeason = selectedSeries?.seasons.find(s => s.seasonNumber === selectedSeasonNum) 
+    || selectedSeries?.seasons[0];
+
+  const filteredEpisodes = activeSeason?.episodes.filter(ep => {
+    if (!episodeSearchQuery) return true;
+    const query = episodeSearchQuery.toLowerCase();
+    return ep.title.toLowerCase().includes(query) || ep.synopsis.toLowerCase().includes(query);
+  }) || [];
 
   return (
     <div id="anime-theatre-player" className="w-full bg-black/40 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col backdrop-blur-md">
@@ -530,45 +587,249 @@ export default function VideoPlayer({
           </form>
         )}
 
-        {/* Curated anime quick selectors cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-1">
-          {animeList.map((anime) => (
-            <button
-              id={`anime-select-${anime.id}`}
-              key={anime.id}
-              onClick={() => selectAnime(anime)}
-              className={`text-left p-3 rounded-xl border transition-all cursor-pointer group relative flex flex-col justify-between ${
-                videoState.videoId === anime.id
-                  ? "bg-indigo-950/20 border-indigo-500/40 text-indigo-200"
-                  : "bg-white/5 hover:bg-white/10 border-white/5 hover:border-white/10 text-slate-300"
-              }`}
-            >
-              <div>
-                <div className="flex items-start justify-between">
-                  <span className="font-semibold text-xs truncate max-w-[80%] group-hover:text-indigo-400 transition-colors">
-                    {anime.title.split(" (")[0]}
-                  </span>
-                  <span className="text-[10px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded font-mono">
-                    {anime.duration}
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
-                  {anime.description}
-                </p>
-              </div>
+        {/* Navigation Tabs for Anime Catalog */}
+        <div className="flex border-b border-white/5 pb-2 mb-3 gap-1 overflow-x-auto scrollbar-none">
+          <button
+            id="tab-retro"
+            type="button"
+            onClick={() => {
+              setActiveCatalogTab("retro");
+              setSelectedSeasonNum(1);
+            }}
+            className={`text-xs px-4 py-2 rounded-xl font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeCatalogTab === "retro"
+                ? "bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                : "text-slate-400 hover:text-slate-200 bg-white/5 border border-white/5"
+            }`}
+          >
+            <Film className="w-3.5 h-3.5 text-indigo-400" />
+            Retro Classics
+          </button>
+          
+          <button
+            id="tab-solo-leveling"
+            type="button"
+            onClick={() => {
+              setActiveCatalogTab("solo-leveling");
+              setSelectedSeasonNum(1);
+            }}
+            className={`text-xs px-4 py-2 rounded-xl font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeCatalogTab === "solo-leveling"
+                ? "bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                : "text-slate-400 hover:text-slate-200 bg-white/5 border border-white/5"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+            Solo Leveling (All Ep)
+          </button>
 
-              {videoState.videoId === anime.id && (
-                <div className="mt-2 text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
-                  </span>
-                  Now Playing
-                </div>
-              )}
-            </button>
-          ))}
+          <button
+            id="tab-aot"
+            type="button"
+            onClick={() => {
+              setActiveCatalogTab("attack-on-titan");
+              setSelectedSeasonNum(1);
+            }}
+            className={`text-xs px-4 py-2 rounded-xl font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeCatalogTab === "attack-on-titan"
+                ? "bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                : "text-slate-400 hover:text-slate-200 bg-white/5 border border-white/5"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+            Attack on Titan (All Ep)
+          </button>
         </div>
+
+        {activeCatalogTab === "retro" ? (
+          /* Curated anime quick selectors cards (Original List) */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-1">
+            {animeList.map((anime) => (
+              <button
+                id={`anime-select-${anime.id}`}
+                key={anime.id}
+                onClick={() => selectAnime(anime)}
+                className={`text-left p-3 rounded-xl border transition-all cursor-pointer group relative flex flex-col justify-between ${
+                  videoState.videoId === anime.id
+                    ? "bg-indigo-950/20 border-indigo-500/40 text-indigo-200"
+                    : "bg-white/5 hover:bg-white/10 border-white/5 hover:border-white/10 text-slate-300"
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between">
+                    <span className="font-semibold text-xs truncate max-w-[80%] group-hover:text-indigo-400 transition-colors">
+                      {anime.title.split(" (")[0]}
+                    </span>
+                    <span className="text-[10px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded font-mono">
+                      {anime.duration}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                    {anime.description}
+                  </p>
+                </div>
+
+                {videoState.videoId === anime.id && (
+                  <div className="mt-2 text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                    </span>
+                    Now Playing
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : selectedSeries ? (
+          /* Modern Anime Series Episode Selector Hub */
+          <div className="flex flex-col gap-3">
+            {/* Header Series info block */}
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row gap-4">
+              <img 
+                src={selectedSeries.coverImage} 
+                alt={selectedSeries.title} 
+                referrerPolicy="no-referrer"
+                className="w-full md:w-28 h-36 md:h-28 object-cover rounded-xl border border-white/10 shadow-lg shrink-0"
+              />
+              <div className="flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                      {selectedSeries.title}
+                    </h4>
+                    <div className="flex gap-1">
+                      {selectedSeries.genres.map(genre => (
+                        <span key={genre} className="text-[9px] bg-indigo-500/15 text-indigo-300 px-1.5 py-0.5 rounded-md font-medium border border-indigo-500/10">
+                          {genre}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    {selectedSeries.description}
+                  </p>
+                </div>
+
+                {/* Season Tabs for Series with multiple seasons */}
+                {selectedSeries.seasons.length > 1 && (
+                  <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1 scrollbar-none">
+                    {selectedSeries.seasons.map((s) => (
+                      <button
+                        id={`btn-season-${s.seasonNumber}`}
+                        key={s.seasonNumber}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSeasonNum(s.seasonNumber);
+                          setEpisodeSearchQuery("");
+                        }}
+                        className={`text-[10px] px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                          selectedSeasonNum === s.seasonNumber
+                            ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.15)]"
+                            : "text-slate-400 hover:text-slate-200 bg-white/5 border border-white/5"
+                        }`}
+                      >
+                        {s.seasonTitle}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Filter Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder={`Search in ${selectedSeries.title} ${activeSeason?.seasonTitle || "episodes"}...`}
+                value={episodeSearchQuery}
+                onChange={(e) => setEpisodeSearchQuery(e.target.value)}
+                className="w-full text-xs bg-white/5 border border-white/10 text-slate-200 pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:border-indigo-500"
+              />
+              {episodeSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setEpisodeSearchQuery("")}
+                  className="absolute right-3 top-2 text-[10px] bg-white/10 hover:bg-white/20 text-slate-300 px-1.5 py-0.5 rounded cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Episode Grid */}
+            {filteredEpisodes.length === 0 ? (
+              <div className="bg-white/5 border border-white/5 p-8 rounded-2xl text-center text-slate-400 text-xs">
+                😭 No episodes found matching "{episodeSearchQuery}" in this season.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filteredEpisodes.map((ep) => {
+                  const isPlayingThisEpisode = videoState.videoTitle.includes(`Ep ${ep.episodeNumber}: ${ep.title}`) || 
+                                              (videoState.videoTitle.includes(selectedSeries.title) && videoState.videoTitle.includes(`Ep ${ep.episodeNumber}`));
+
+                  return (
+                    <div
+                      id={`ep-card-${ep.episodeNumber}`}
+                      key={ep.episodeNumber}
+                      className={`p-3 rounded-xl border flex flex-col justify-between transition-all group ${
+                        isPlayingThisEpisode
+                          ? "bg-indigo-950/20 border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.08)]"
+                          : "bg-white/5 border-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-bold text-xs text-slate-200">
+                            Episode {ep.episodeNumber}
+                          </span>
+                          <span className="text-[9px] bg-black/40 text-slate-400 px-1.5 py-0.5 rounded font-mono">
+                            {ep.duration}
+                          </span>
+                        </div>
+                        <h5 className="font-semibold text-xs text-indigo-300 mt-1 line-clamp-1 group-hover:text-indigo-400 transition-colors">
+                          {ep.title}
+                        </h5>
+                        <p className="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                          {ep.synopsis}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between gap-2">
+                        <button
+                          id={`btn-watch-ep-${ep.episodeNumber}`}
+                          type="button"
+                          onClick={() => selectEpisode(selectedSeries.title, activeSeason?.seasonTitle || "Season 1", ep)}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer ${
+                            isPlayingThisEpisode
+                              ? "bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                              : "bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/25 border border-indigo-500/20"
+                          }`}
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          {isPlayingThisEpisode ? "Now Playing" : "Co-Watch Ep"}
+                        </button>
+
+                        <a
+                          href={`https://www.google.com/search?q=intitle%3A%22index+of%22+%22mp4%22+%22${encodeURIComponent(selectedSeries.title)}%22+%22Episode+${ep.episodeNumber}%22`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          referrerPolicy="no-referrer"
+                          className="text-[9px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all shrink-0"
+                          title="Search for a direct-stream link on Google to load inside the box"
+                        >
+                          <Globe className="w-2.5 h-2.5 text-indigo-400" />
+                          Find Free Link
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {/* Free Anime Streaming Finder Guide */}
         <div className="mt-2 pt-2 border-t border-white/5 flex flex-col gap-2">

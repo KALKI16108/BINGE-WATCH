@@ -151,17 +151,17 @@ A hilarious and chaotic parody of the fantasy genre that will keep you both in s
 
   hype: `Get ready for some high-energy action and mind-blowing thrillers! ⚡
 
-1. **Kimetsu no Yaiba (Demon Slayer)** (Action / Fantasy)
-Stunning ufotable animation, high-stakes combat, and deeply emotional bonds.
-*Couples Connection Tip:* Hold hands tightly during the intense, legendary boss battles! ⚔️
+1. **Solo Leveling** (Action / Fantasy / Overpowered)
+From the weakest hunter of all mankind to a god-like warrior with a shadow army! Visually breathtaking action scenes.
+*Couples Connection Tip:* Squeal together whenever Sung Jinwoo says "Arise!" 💀
 
-2. **Spy x Family** (Action / Comedy)
-A spy, an assassin, and a telepath child form a wholesome pretend family. Absolutely charming!
-*Couples Connection Tip:* Spot Anya's legendary reaction faces and try to imitate them! 🕵️‍♂️
+2. **Shingeki no Kyojin (Attack on Titan)** (Action / Thriller)
+An intense, masterpiece mystery with dark twists and turns that will keep you on the absolute edge of your seats.
+*Couples Connection Tip:* Pause between episodes to share your theories on what happens next! 🧠
 
-3. **Shingeki no Kyojin (Attack on Titan)** (Action / Thriller)
-An intense mystery with dark twists and turns that will keep you on the absolute edge of your seats.
-*Couples Connection Tip:* Pause between episodes to share your theories on what happens next! 🧠`
+3. **Spy x Family** (Action / Comedy)
+A legendary spy, a deadly assassin, and a cute telepath child form a wholesome fake family. Absolutely charming!
+*Couples Connection Tip:* Spot Anya's legendary reaction faces and try to imitate them! 🕵️‍♂️`
 };
 
 const fallbackChatReplies = [
